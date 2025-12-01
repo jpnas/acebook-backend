@@ -192,7 +192,7 @@ class CourtViewSet(viewsets.ModelViewSet):
 
 class CoachViewSet(viewsets.ModelViewSet):
     serializer_class = CoachSerializer
-    permission_classes = [IsClubAdmin]
+    permission_classes = [IsClubStaffOrReadOnly]
     pagination_class = None
 
     def get_queryset(self):
