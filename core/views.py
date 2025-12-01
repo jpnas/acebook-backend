@@ -1,5 +1,7 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.core.mail import send_mail
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_decode, urlsafe_base64_encode
@@ -136,13 +138,20 @@ class ForgotPasswordView(APIView):
 
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = password_reset_token.make_token(user)
-        return Response(
-            {
-                "detail": "Utilize o token informado para redefinir sua senha.",
-                "uid": uid,
-                "token": token,
-            }
+        reset_link = f"{settings.FRONTEND_RESET_URL}?uid={uid}&token={token}"
+        send_mail(
+            subject="Redefinição de senha - AceBook",
+            message=(
+                "Recebemos sua solicitação de redefinição de senha.\n\n"
+                f"Use o link seguro: {reset_link}\n\n"
+                f"Ou insira UID: {uid}\nToken: {token}\n\n"
+                "Se não foi você, ignore esta mensagem."
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
         )
+        return Response({"detail": "Se o email existir, enviamos as instruções em instantes."})
 
 
 class ResetPasswordView(APIView):
