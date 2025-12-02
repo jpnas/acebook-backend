@@ -126,7 +126,8 @@ class ReservationSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Horário final deve ser maior que o inicial.")
         if start < timezone.now():
             raise serializers.ValidationError("Não é possível criar reservas retroativas.")
-        if request_user.role == User.Roles.PLAYER and start.astimezone(current_tz).date() != timezone.localdate():
+        local_start_date = start.astimezone(current_tz).date()
+        if request_user.role == User.Roles.PLAYER and local_start_date != timezone.localdate():
             raise serializers.ValidationError("Jogadores só podem criar reservas para o dia atual.")
         if not court:
             raise serializers.ValidationError({"court": "Selecione uma quadra."})
@@ -140,6 +141,15 @@ class ReservationSerializer(serializers.ModelSerializer):
             qs = qs.exclude(id=self.instance.id)
         if qs.exists():
             raise serializers.ValidationError("Já existe uma reserva para essa quadra nesse horário.")
+
+        daily_reservations = Reservation.objects.filter(
+            player=player,
+            start_time__date=local_start_date,
+        )
+        if self.instance:
+            daily_reservations = daily_reservations.exclude(id=self.instance.id)
+        if daily_reservations.exists():
+            raise serializers.ValidationError("Cada jogador pode ter no máximo uma reserva por dia.")
 
         attrs["player"] = player
         attrs["start_time"] = start

@@ -1,3 +1,5 @@
+import logging
+
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
@@ -20,6 +22,7 @@ from .serializers import CoachSerializer, CourtSerializer, ReservationSerializer
 User = get_user_model()
 password_reset_token = PasswordResetTokenGenerator()
 PASSWORD_REQUIREMENTS = "A senha deve ter pelo menos 8 caracteres e conter letras e números."
+logger = logging.getLogger(__name__)
 
 
 def password_is_strong(password: str | None) -> bool:
@@ -151,18 +154,25 @@ class ForgotPasswordView(APIView):
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         token = password_reset_token.make_token(user)
         reset_link = f"{settings.FRONTEND_RESET_URL}?uid={uid}&token={token}"
-        send_mail(
-            subject="Redefinição de senha - AceBook",
-            message=(
-                "Recebemos sua solicitação de redefinição de senha.\n\n"
-                f"Use o link seguro: {reset_link}\n\n"
-                f"Ou insira UID: {uid}\nToken: {token}\n\n"
-                "Se não foi você, ignore esta mensagem."
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
-        )
+        try:
+            send_mail(
+                subject="Redefinição de senha - AceBook",
+                message=(
+                    "Recebemos sua solicitação de redefinição de senha.\n\n"
+                    f"Use o link seguro: {reset_link}\n\n"
+                    f"Ou insira UID: {uid}\nToken: {token}\n\n"
+                    "Se não foi você, ignore esta mensagem."
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+        except Exception:  # pragma: no cover - depende do backend SMTP
+            logger.exception("Falha ao enviar email de recuperação para %s", user.email)
+            return Response(
+                {"detail": "Não foi possível enviar o email de recuperação. Tente novamente em instantes."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
         return Response({"detail": "Se o email existir, enviamos as instruções em instantes."})
 
 
