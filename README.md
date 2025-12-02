@@ -83,6 +83,16 @@ python manage.py runserver
 
 Todas as rotas mutáveis exigem `Authorization: Bearer <token>`. Players só acessam dados do próprio clube; admins administram o clube inteiro.
 
+### Como testar o Swagger
+
+1. Abra `https://acebook-backend-production-0278.up.railway.app/docs`.
+2. Clique em **Authorize** (canto superior direito).
+3. Em `Value`, informe `Bearer <token>`.
+   - Obtenha o token pelo próprio Swagger em `/api/auth/login/` (ou via `curl/Postman`) usando um email/senha válido.
+   - Copie o campo `access` retornado e cole após `Bearer`.
+4. Clique em **Authorize** e depois \*\*Close`. As chamadas autenticadas passarão a usar o token automaticamente.
+5. Quando o token expirar, repita o passo 3.
+
 ## Relato / Resultados
 
 - **Funcionou**:
