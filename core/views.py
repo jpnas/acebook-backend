@@ -19,6 +19,15 @@ from .serializers import CoachSerializer, CourtSerializer, ReservationSerializer
 
 User = get_user_model()
 password_reset_token = PasswordResetTokenGenerator()
+PASSWORD_REQUIREMENTS = "A senha deve ter pelo menos 8 caracteres e conter letras e números."
+
+
+def password_is_strong(password: str | None) -> bool:
+    if not password or len(password) < 8:
+        return False
+    has_letter = any(char.isalpha() for char in password)
+    has_digit = any(char.isdigit() for char in password)
+    return has_letter and has_digit
 
 
 class ClubTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -78,6 +87,9 @@ class RegisterView(APIView):
 
         if not email or not password:
             return Response({"detail": "Informe email e senha."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not password_is_strong(password):
+            return Response({"detail": PASSWORD_REQUIREMENTS}, status=status.HTTP_400_BAD_REQUEST)
 
         if not username:
             base_username = email.split("@")[0]
@@ -164,6 +176,9 @@ class ResetPasswordView(APIView):
 
         if not uid or not token or not password:
             return Response({"detail": "Preencha uid, token e nova senha."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not password_is_strong(password):
+            return Response({"detail": PASSWORD_REQUIREMENTS}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             user_id = force_str(urlsafe_base64_decode(uid))
